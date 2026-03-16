@@ -6,11 +6,21 @@ interface AsignaturaSelectorProps {
 
 function AsignaturaSelector({ sigla, nombre, nivel }: AsignaturaSelectorProps) {
     return (
-        <>
-            <h3>{sigla}</h3>
-            <h3>{nombre}</h3>
-            <h3>{nivel}</h3>
-        </>
+        <div className="asignatura-selector">
+            <h4 className="nombre">
+                <span className="sigla">{sigla}</span> {nombre}
+            </h4>
+            <p>
+                Nivel:{" "}
+                <span
+                    className={
+                        nivel != "Optativo" ? "nivel" : " nivel optativo"
+                    }
+                >
+                    {nivel}
+                </span>
+            </p>
+        </div>
     );
 }
 

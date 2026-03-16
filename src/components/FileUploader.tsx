@@ -14,7 +14,6 @@ function FileUploader({ onDataParsed }: FileUploaderProps) {
 
         if (!file) return null;
         readExcel(file).then((data) => {
-            console.log(data);
             // forward parsed data to parent if provided
             if (onDataParsed) onDataParsed(data);
         });
