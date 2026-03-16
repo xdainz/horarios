@@ -1,0 +1,11 @@
+body {
+    background: var(--bg);
+    color: var(--text);
+}
+
+.classblock {
+    background: var(--light-card-bg);
+    border: 2px solid;
+    border-radius: 1rem;
+    padding: 1rem;
+}
