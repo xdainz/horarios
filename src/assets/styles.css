@@ -1,6 +1,9 @@
 body {
     background: var(--bg);
     color: var(--text);
+    max-width: 800px;
+    margin: auto;
+    font-family: var(--font);
 }
 
 .classblock {
@@ -8,4 +11,39 @@ body {
     border: 2px solid;
     border-radius: 1rem;
     padding: 1rem;
+}
+
+.asignatura-selector {
+    background: var(--light-card-bg);
+    border: 2px solid;
+    padding: 0.2rem 1rem;
+    border-radius: 1.2rem;
+    transition: background-color 0.15s ease-in-out;
+
+    .nombre {
+        color: var(--text);
+    }
+    .sigla {
+        color: var(--text-highlight);
+    }
+
+    .nivel {
+        color: var(--text);
+        font-weight: bold;
+    }
+
+    .optativo {
+        color: var(--text-alt);
+    }
+}
+
+.asignatura-selector:hover {
+    cursor: pointer;
+    background: var(--light-card-bg-hover);
+}
+
+.asignatura-selector-grid {
+    gap: 0.5rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
 }
