@@ -6,6 +6,18 @@ interface AsignaturaSelectorListProps {
 }
 
 function AsignaturaSelectorList({ asignaturas }: AsignaturaSelectorListProps) {
+    const selectedAsignaturas = new Set<string>([]);
+
+    const handleSelectedList = (siglaAsignatura: string) => {
+        if (selectedAsignaturas.has(siglaAsignatura)) {
+            selectedAsignaturas.delete(siglaAsignatura);
+        } else {
+            selectedAsignaturas.add(siglaAsignatura);
+        }
+        console.log(selectedAsignaturas);
+    };
+
+    console.log(selectedAsignaturas);
     return (
         <div className="asignatura-selector-grid">
             {asignaturas.map((asig, index) => (
@@ -14,6 +26,7 @@ function AsignaturaSelectorList({ asignaturas }: AsignaturaSelectorListProps) {
                     nombre={asig.NombreAsignatura}
                     nivel={asig.Nivel}
                     key={index}
+                    onSelect={handleSelectedList}
                 />
             ))}
         </div>

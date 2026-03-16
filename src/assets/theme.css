@@ -4,6 +4,7 @@
     --text-highlight: #41e3ff;
     --text-alt: #eeff00;
     --light-card-bg: #444;
+    --light-card-selected: #cd43ff;
     --light-card-bg-hover: #666;
     --font: "JetBrains Mono", monospace;
 }

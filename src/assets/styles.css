@@ -37,6 +37,10 @@ body {
     }
 }
 
+.asignatura-selector.selected {
+    background: var(--light-card-selected) !important;
+}
+
 .asignatura-selector:hover {
     cursor: pointer;
     background: var(--light-card-bg-hover);
