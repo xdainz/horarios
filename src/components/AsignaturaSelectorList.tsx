@@ -14,7 +14,6 @@ function AsignaturaSelectorList({ asignaturas }: AsignaturaSelectorListProps) {
         } else {
             selectedAsignaturas.add(siglaAsignatura);
         }
-        console.log(selectedAsignaturas);
     };
 
     console.log(selectedAsignaturas);
