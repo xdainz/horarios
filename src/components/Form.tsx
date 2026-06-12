@@ -5,9 +5,12 @@ import { normalize } from "../utils/text";
 
 interface FormProps {
     excelData: Asignatura[];
-    onCareerSelected?: (career: string) => void;
-    onJornadaSelected?: (jornada: string) => void;
-    onNivelSelected?: (nivel: string) => void;
+    career: string;
+    jornada: string;
+    nivel: string;
+    onCareerSelected: (career: string) => void;
+    onJornadaSelected: (jornada: string) => void;
+    onNivelSelected: (nivel: string) => void;
 }
 
 function jornadaOptionsFor(excelData: Asignatura[], career: string): string[] {
@@ -19,16 +22,17 @@ function jornadaOptionsFor(excelData: Asignatura[], career: string): string[] {
 
 function Form({
     excelData,
+    career,
+    jornada,
+    nivel,
     onCareerSelected,
     onJornadaSelected,
     onNivelSelected,
 }: FormProps) {
-    const [careerInput, setCareerInput] = useState<string>("");
+    // combobox UI state; the selected values live in the parent
+    const [careerInput, setCareerInput] = useState(career);
     const [careerOpen, setCareerOpen] = useState(false);
     const [highlight, setHighlight] = useState(0);
-    const [career, setCareer] = useState<string>("");
-    const [jornada, setJornada] = useState<string>("");
-    const [nivel, setNivel] = useState<string>("");
 
     const careerList: string[] = Array.from(
         new Set(
@@ -61,16 +65,11 @@ function Form({
 
     const applyCareer = (newCareer: string) => {
         if (newCareer === career) return;
-        setCareer(newCareer);
-        setNivel("");
-        if (onCareerSelected) onCareerSelected(newCareer);
-        if (onNivelSelected) onNivelSelected("");
+        onCareerSelected(newCareer);
+        onNivelSelected("");
         // no real choice when the career runs on a single jornada
         const options = jornadaOptionsFor(excelData, newCareer);
-        const newJornada =
-            newCareer && options.length === 1 ? options[0] : "";
-        setJornada(newJornada);
-        if (onJornadaSelected) onJornadaSelected(newJornada);
+        onJornadaSelected(newCareer && options.length === 1 ? options[0] : "");
     };
 
     const selectCareer = (newCareer: string) => {
@@ -106,16 +105,13 @@ function Form({
     };
 
     const handleJornadaClick = (newJornada: string) => {
-        setJornada(newJornada);
-        setNivel("");
-        if (onJornadaSelected) onJornadaSelected(newJornada);
-        if (onNivelSelected) onNivelSelected("");
+        if (newJornada === jornada) return;
+        onJornadaSelected(newJornada);
+        onNivelSelected("");
     };
 
     const handleNivelChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const newNivel = e.target.value;
-        setNivel(newNivel);
-        if (onNivelSelected) onNivelSelected(newNivel);
+        onNivelSelected(e.target.value);
     };
 
     return (
@@ -161,7 +157,7 @@ function Form({
                 ) : null}
             </div>
 
-            {career.length > 1 ? (
+            {career !== "" ? (
                 <div className="field">
                     <label>Jornada</label>
                     <div className="jornada-toggle">
@@ -191,7 +187,7 @@ function Form({
                 </div>
             ) : null}
 
-            {career.length > 1 && jornada ? (
+            {career !== "" && jornada ? (
                 <div className="field">
                     <label htmlFor="nivel">Nivel (semestre)</label>
                     <select

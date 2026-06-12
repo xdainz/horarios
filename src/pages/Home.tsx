@@ -93,15 +93,24 @@ function Home() {
         return counts;
     }, [availableRows]);
 
-    // when career/jornada/nivel changes, clear selection and results
-    const selectionKey = `${career}|${jornada}|${nivel}`;
-    const [prevSelectionKey, setPrevSelectionKey] = useState(selectionKey);
-    if (prevSelectionKey !== selectionKey) {
-        setPrevSelectionKey(selectionKey);
+    // changing career/jornada/nivel invalidates the selection and results
+    const resetSelection = () => {
         setSelected(new Set());
         setSubjectQuery("");
         setResult(null);
-    }
+    };
+    const handleCareerSelected = (newCareer: string) => {
+        setCareer(newCareer);
+        resetSelection();
+    };
+    const handleJornadaSelected = (newJornada: string) => {
+        setJornada(newJornada);
+        resetSelection();
+    };
+    const handleNivelSelected = (newNivel: string) => {
+        setNivel(newNivel);
+        resetSelection();
+    };
 
     const filteredNivelSubjects = useMemo(
         () => nivelSubjects.filter((a) => matchesQuery(a, subjectQuery)),
@@ -223,15 +232,13 @@ function Home() {
                         jornada y nivel
                     </h2>
                     <Form
-                        key={fileName}
                         excelData={excelData}
-                        onCareerSelected={(career: string) =>
-                            setCareer(career)
-                        }
-                        onJornadaSelected={(jornada: string) =>
-                            setJornada(jornada)
-                        }
-                        onNivelSelected={(nivel: string) => setNivel(nivel)}
+                        career={career}
+                        jornada={jornada}
+                        nivel={nivel}
+                        onCareerSelected={handleCareerSelected}
+                        onJornadaSelected={handleJornadaSelected}
+                        onNivelSelected={handleNivelSelected}
                     />
                 </section>
             ) : null}
