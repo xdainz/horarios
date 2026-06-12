@@ -296,6 +296,9 @@ a:hover {
     display: flex;
     flex-direction: column;
     gap: 0.15rem;
+    font: inherit;
+    color: inherit;
+    text-align: left;
     background: var(--surface);
     border: 2px solid var(--border);
     border-radius: 0.8rem;

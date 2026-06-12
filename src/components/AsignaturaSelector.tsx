@@ -18,7 +18,8 @@ function AsignaturaSelector({
     };
 
     return (
-        <div
+        <button
+            type="button"
             className={
                 selected
                     ? "asignatura-selector selected"
@@ -32,7 +33,7 @@ function AsignaturaSelector({
             <span className="sigla">{sigla}</span>
             <span className="nombre">{nombre}</span>
             <span className="meta">{subtitle}</span>
-        </div>
+        </button>
     );
 }
 
