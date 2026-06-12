@@ -5,7 +5,7 @@ function App() {
         <>
             <header className="app-header">
                 <h1>
-                    horario<span className="accent">duoc</span>
+                    Horario<span className="accent">Duoc</span>
                 </h1>
                 <p>
                     Genera todas las combinaciones de horario sin topes para tu
