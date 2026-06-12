@@ -1,10 +1,14 @@
 :root {
-    --bg: #333;
-    --text: #fff;
-    --text-highlight: #41e3ff;
-    --text-alt: #eeff00;
-    --light-card-bg: #444;
-    --light-card-selected: #cd43ff;
-    --light-card-bg-hover: #666;
-    --font: "JetBrains Mono", monospace;
+    --bg: #15171c;
+    --surface: #1f232b;
+    --surface-2: #2a303b;
+    --border: #39404e;
+    --text: #e8eaed;
+    --text-dim: #9aa3b2;
+    --accent: #43f9ff;
+    --accent-soft: rgba(67, 255, 239, 0.12);
+    --highlight: #41e3ff;
+    --highlight-soft: rgba(65, 227, 255, 0.08);
+    --danger: #ff6b6b;
+    --font: "Noto Sans", sans-serif;
 }

@@ -3,14 +3,30 @@ import Home from "./pages/Home";
 function App() {
     return (
         <>
-            <h1>To-Do</h1>
-            <h2>diurno/vespertino</h2>
-            <h2>clase online</h2>
-            <h2>carrera</h2>
-            <h2>nivel (semestre carrera)</h2>
-            <h2>pref dias libres</h2>
-            <hr />
+            <header className="app-header">
+                <h1>
+                    horario<span className="accent">duoc</span>
+                </h1>
+                <p>
+                    Genera todas las combinaciones de horario sin topes para tu
+                    carrera y nivel.
+                </p>
+            </header>
             <Home />
+            <div className="watermark">
+                <span>
+                    <a
+                        href="https://github.com/xdainz/horarios"
+                        target="_blank"
+                    >
+                        Horarioduoc
+                    </a>{" "}
+                    fue desarrollado por{" "}
+                    <a href="https://github.com/xdainz" target="_blank">
+                        xdainz
+                    </a>
+                </span>
+            </div>
         </>
     );
 }

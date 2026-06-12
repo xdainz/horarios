@@ -1,25 +1,19 @@
-import { useState } from "react";
-
 interface AsignaturaSelectorProps {
     sigla: string;
     nombre: string;
-    nivel: string | number;
+    subtitle: string;
+    selected: boolean;
     onSelect?: (siglaAsignatura: string) => void;
 }
 
 function AsignaturaSelector({
     sigla,
     nombre,
-    nivel,
+    subtitle,
+    selected,
     onSelect,
 }: AsignaturaSelectorProps) {
-    const [selected, setSelected] = useState<boolean>(false);
-
     const handleClick = () => {
-        const selectedValue = !selected;
-        setSelected(selectedValue);
-        // lift up state
-
         if (onSelect) onSelect(sigla);
     };
 
@@ -31,20 +25,13 @@ function AsignaturaSelector({
                     : "asignatura-selector"
             }
             onClick={handleClick}
+            role="checkbox"
+            aria-checked={selected}
         >
-            <h4 className="nombre">
-                <span className="sigla">{sigla}</span> {nombre}
-            </h4>
-            <p>
-                Nivel:{" "}
-                <span
-                    className={
-                        nivel != "Optativo" ? "nivel" : " nivel optativo"
-                    }
-                >
-                    {nivel}
-                </span>
-            </p>
+            <span className="check">{selected ? "✓" : ""}</span>
+            <span className="sigla">{sigla}</span>
+            <span className="nombre">{nombre}</span>
+            <span className="meta">{subtitle}</span>
         </div>
     );
 }

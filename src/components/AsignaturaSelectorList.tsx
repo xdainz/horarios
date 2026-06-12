@@ -3,31 +3,32 @@ import AsignaturaSelector from "./AsignaturaSelector";
 
 interface AsignaturaSelectorListProps {
     asignaturas: Asignatura[];
+    selected: Set<string>;
+    sectionCounts: Map<string, number>;
+    onToggle: (siglaAsignatura: string) => void;
 }
 
-function AsignaturaSelectorList({ asignaturas }: AsignaturaSelectorListProps) {
-    const selectedAsignaturas = new Set<string>([]);
-
-    const handleSelectedList = (siglaAsignatura: string) => {
-        if (selectedAsignaturas.has(siglaAsignatura)) {
-            selectedAsignaturas.delete(siglaAsignatura);
-        } else {
-            selectedAsignaturas.add(siglaAsignatura);
-        }
-    };
-
-    console.log(selectedAsignaturas);
+function AsignaturaSelectorList({
+    asignaturas,
+    selected,
+    sectionCounts,
+    onToggle,
+}: AsignaturaSelectorListProps) {
     return (
         <div className="asignatura-selector-grid">
-            {asignaturas.map((asig, index) => (
-                <AsignaturaSelector
-                    sigla={asig.SiglaAsignatura}
-                    nombre={asig.NombreAsignatura}
-                    nivel={asig.Nivel}
-                    key={index}
-                    onSelect={handleSelectedList}
-                />
-            ))}
+            {asignaturas.map((asig) => {
+                const count = sectionCounts.get(asig.SiglaAsignatura) ?? 0;
+                return (
+                    <AsignaturaSelector
+                        sigla={asig.SiglaAsignatura}
+                        nombre={asig.NombreAsignatura}
+                        subtitle={`${count} ${count === 1 ? "sección" : "secciones"}`}
+                        selected={selected.has(asig.SiglaAsignatura)}
+                        key={asig.SiglaAsignatura}
+                        onSelect={onToggle}
+                    />
+                );
+            })}
         </div>
     );
 }
