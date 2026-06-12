@@ -68,10 +68,13 @@ export function groupSections(rows: Asignatura[]): Map<string, Section[]> {
         { row: Asignatura; horarios: Set<string> }
     >();
     for (const row of rows) {
-        let entry = bySeccion.get(row.Seccion);
+        // key includes sigla: a section code reused by another subject
+        // must not merge into the same section
+        const key = `${row.SiglaAsignatura}|${row.Seccion}`;
+        let entry = bySeccion.get(key);
         if (!entry) {
             entry = { row, horarios: new Set() };
-            bySeccion.set(row.Seccion, entry);
+            bySeccion.set(key, entry);
         }
         entry.horarios.add(row.Horario);
     }
