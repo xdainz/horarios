@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
     compatibleElectives,
+    formatTime,
     generateSchedules,
     groupSections,
     matchesJornada,
@@ -82,6 +83,22 @@ describe("parseHorario", () => {
     test("returns null for garbage", () => {
         expect(parseHorario("")).toBeNull();
         expect(parseHorario("Lunes 10:00 - 11:00")).toBeNull();
+    });
+
+    test("ignores the seconds component", () => {
+        expect(parseHorario("Lu 8:01:59 - 9:20:30")).toEqual({
+            day: 0,
+            start: 481,
+            end: 560,
+        });
+    });
+});
+
+describe("formatTime", () => {
+    test("formats minutes-since-midnight with zero-padded minutes", () => {
+        expect(formatTime(481)).toBe("8:01");
+        expect(formatTime(600)).toBe("10:00");
+        expect(formatTime(0)).toBe("0:00");
     });
 });
 
@@ -199,6 +216,62 @@ describe("groupSections", () => {
         ];
         expect(groupSections(rows).get("ONL1")![0].blocks).toHaveLength(0);
     });
+
+    test("carries subject metadata and converts the virtual flag", () => {
+        const rows = [
+            row({
+                SiglaAsignatura: "OCY1105",
+                NombreAsignatura: "CIBERSEGURIDAD DEFENSIVA",
+                Seccion: "OCY1105-006V",
+                Nivel: "Optativo",
+                Docente: "A. DOCENTE",
+                IsVirtual: "ONLINE SINCRONA",
+                Horario: "Sa 10:01:00 - 11:20:00",
+            }),
+            row({
+                SiglaAsignatura: "MAT1",
+                Seccion: "MAT1-001D",
+                IsVirtual: null,
+                Horario: "Lu 8:01:00 - 9:20:00",
+            }),
+        ];
+        const grouped = groupSections(rows);
+        expect(grouped.get("OCY1105")![0]).toMatchObject({
+            nombre: "CIBERSEGURIDAD DEFENSIVA",
+            nivel: "Optativo",
+            docente: "A. DOCENTE",
+            isVirtual: true,
+        });
+        expect(grouped.get("MAT1")![0].isVirtual).toBe(false);
+    });
+
+    test("repeated identical horario rows produce a single block", () => {
+        const duplicated = row({
+            SiglaAsignatura: "MAT1",
+            Seccion: "MAT1-001D",
+            Horario: "Lu 8:01:00 - 9:20:00",
+        });
+        const blocks = groupSections([duplicated, duplicated]).get(
+            "MAT1",
+        )![0].blocks;
+        expect(blocks).toHaveLength(1);
+    });
+
+    test("blockless sections of the same subject dedupe to one", () => {
+        const rows = [
+            row({
+                SiglaAsignatura: "ONL1",
+                Seccion: "ONL1-001V",
+                Horario: "0:00:00 - 0:00:00",
+            }),
+            row({
+                SiglaAsignatura: "ONL1",
+                Seccion: "ONL1-002V",
+                Horario: "0:00:00 - 0:00:00",
+            }),
+        ];
+        expect(groupSections(rows).get("ONL1")).toHaveLength(1);
+    });
 });
 
 describe("sectionConflicts", () => {
@@ -289,6 +362,58 @@ describe("generateSchedules", () => {
         expect(schedules).toHaveLength(0);
         expect(capped).toBe(false);
     });
+
+    test("a subject with no sections yields no schedules", () => {
+        const { schedules } = generateSchedules([
+            [section("A", "A-1", [[0, 480, 560]])],
+            [],
+        ]);
+        expect(schedules).toHaveLength(0);
+    });
+
+    test("blockless (async) sections fit any schedule", () => {
+        const { schedules } = generateSchedules([
+            [section("A", "A-1", [[0, 480, 560]])],
+            [section("B", "B-1", [])],
+        ]);
+        expect(schedules).toHaveLength(1);
+    });
+
+    test("no generated schedule ever contains overlapping blocks", () => {
+        // dense fixture: many sections sharing slots so plenty of
+        // combinations conflict and plenty don't
+        const subjects = [
+            [
+                section("A", "A-1", [
+                    [0, 480, 560],
+                    [2, 480, 560],
+                ]),
+                section("A", "A-2", [[1, 600, 680]]),
+            ],
+            [
+                section("B", "B-1", [[0, 540, 620]]), // overlaps A-1 Lu
+                section("B", "B-2", [[2, 560, 640]]), // touches A-1 Mi
+            ],
+            [
+                section("C", "C-1", [[1, 620, 700]]), // overlaps A-2
+                section("C", "C-2", [[4, 480, 560]]),
+            ],
+        ];
+        const { schedules } = generateSchedules(subjects);
+        expect(schedules.length).toBeGreaterThan(0);
+        for (const schedule of schedules) {
+            const blocks = schedule.flatMap((s) => s.blocks);
+            for (let i = 0; i < blocks.length; i++) {
+                for (let j = i + 1; j < blocks.length; j++) {
+                    const a = blocks[i];
+                    const b = blocks[j];
+                    const overlap =
+                        a.day === b.day && a.start < b.end && b.start < a.end;
+                    expect(overlap).toBe(false);
+                }
+            }
+        }
+    });
 });
 
 describe("compatibleElectives", () => {
@@ -308,5 +433,18 @@ describe("compatibleElectives", () => {
         expect(result).toHaveLength(1);
         expect(result[0].sigla).toBe("OPT1");
         expect(result[0].sections.map((s) => s.seccion)).toEqual(["OPT1-2"]);
+    });
+
+    test("results are sorted by sigla", () => {
+        const electives = new Map<string, Section[]>([
+            ["ZZZ1", [section("ZZZ1", "Z-1", [[0, 480, 560]])]],
+            ["AAA1", [section("AAA1", "A-1", [[1, 480, 560]])]],
+        ]);
+        const result = compatibleElectives([], electives);
+        expect(result.map((e) => e.sigla)).toEqual(["AAA1", "ZZZ1"]);
+    });
+
+    test("empty electives map yields no options", () => {
+        expect(compatibleElectives([], new Map())).toHaveLength(0);
     });
 });

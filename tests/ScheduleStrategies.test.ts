@@ -37,6 +37,22 @@ describe("computeStats", () => {
         expect(stats.gapMinutes).toBe(0);
     });
 
+    test("a 16-minute break is just over the threshold and counts", () => {
+        const stats = computeStats([
+            section("A", [[0, 480, 540]]),
+            section("B", [[0, 556, 616]]),
+        ]);
+        expect(stats.gapMinutes).toBe(16);
+    });
+
+    test("gap detection is independent of section order", () => {
+        const stats = computeStats([
+            section("B", [[0, 600, 660]]),
+            section("A", [[0, 480, 540]]),
+        ]);
+        expect(stats.gapMinutes).toBe(60);
+    });
+
     test("free days exclude any day with at least one block", () => {
         const stats = computeStats([
             section("A", [
@@ -102,5 +118,23 @@ describe("sortSchedules", () => {
     test("stats ride along with each schedule", () => {
         const result = sortSchedules([withGap], ["compact"]);
         expect(result[0].stats.gapMinutes).toBe(60);
+    });
+
+    test("combined strategies rank the schedule best on both first", () => {
+        // lateOneDay has no gaps AND the most free days
+        const result = sortSchedules(
+            [withGap, compactTwoDays, lateOneDay],
+            ["compact", "freeDays"],
+        );
+        expect(result[0].schedule).toBe(lateOneDay);
+    });
+
+    test("schedules that tie on a metric keep their original order", () => {
+        // both gap-free: the zero range must not produce NaN scores
+        const a = [section("A", [[0, 480, 540]])];
+        const b = [section("B", [[1, 480, 540]])];
+        const result = sortSchedules([a, b], ["compact"]);
+        expect(result[0].schedule).toBe(a);
+        expect(result[1].schedule).toBe(b);
     });
 });

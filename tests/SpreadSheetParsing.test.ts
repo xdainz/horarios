@@ -80,6 +80,36 @@ describe("parseSheets", () => {
         expect(rows[0].Seccion).toBe("OCY1105-006V");
     });
 
+    test("accepts short header aliases (Sigla, Nombre, Asignatura Virtual)", () => {
+        const header = [...HEADER];
+        header[4] = "Sigla";
+        header[5] = "Nombre";
+        header[10] = "Asignatura Virtual";
+        const rows = parseSheets([{ sheet: "x", data: [header, DATA_ROW] }]);
+        expect(rows[0].SiglaAsignatura).toBe("OCY1105");
+        expect(rows[0].NombreAsignatura).toBe("CIBERSEGURIDAD DEFENSIVA");
+        expect(rows[0].IsVirtual).toBe("ONLINE SINCRONA");
+    });
+
+    test("optional columns (Sede, Plan, Docente, virtual) may be absent", () => {
+        const required = [1, 3, 4, 5, 6, 7, 8]; // Carrera, Jornada, Sigla, Nombre, Nivel, Sección, Horario
+        const header = required.map((i) => HEADER[i]);
+        const data = required.map((i) => DATA_ROW[i]);
+        const rows = parseSheets([{ sheet: "x", data: [header, data] }]);
+        expect(rows[0].Sede).toBe("");
+        expect(rows[0].Plan).toBe(0);
+        expect(rows[0].Docente).toBe("");
+        expect(rows[0].IsVirtual).toBeNull();
+        expect(rows[0].Seccion).toBe("OCY1105-006V");
+    });
+
+    test("when a header repeats, the first column wins", () => {
+        const header = [...HEADER, "Horario"];
+        const data = [...DATA_ROW, "Lu 8:01:00 - 9:20:00"];
+        const rows = parseSheets([{ sheet: "x", data: [header, data] }]);
+        expect(rows[0].Horario).toBe("Sa 10:01:00 - 11:20:00");
+    });
+
     test("numeric Nivel stays numeric, string Nivel stays string", () => {
         const numeric = [...DATA_ROW];
         numeric[6] = 3;
@@ -88,6 +118,26 @@ describe("parseSheets", () => {
         ]);
         expect(rows[0].Nivel).toBe(3);
         expect(rows[1].Nivel).toBe("Optativo");
+    });
+
+    test("non-numeric Plan becomes 0, numeric-string Plan parses", () => {
+        const invalid = [...DATA_ROW];
+        invalid[2] = "N/A";
+        const asString = [...DATA_ROW];
+        asString[2] = "1446815";
+        const rows = parseSheets([
+            { sheet: "x", data: [HEADER, invalid, asString] },
+        ]);
+        expect(rows[0].Plan).toBe(0);
+        expect(rows[1].Plan).toBe(1446815);
+    });
+
+    test("rows shorter than the header parse with empty fields", () => {
+        const short = DATA_ROW.slice(0, 5); // ends at Sigla Asignatura
+        const rows = parseSheets([{ sheet: "x", data: [HEADER, short] }]);
+        expect(rows[0].SiglaAsignatura).toBe("OCY1105");
+        expect(rows[0].Horario).toBe("");
+        expect(rows[0].IsVirtual).toBeNull();
     });
 
     test("empty virtual cell becomes null, empty docente becomes empty string", () => {
