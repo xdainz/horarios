@@ -1,5 +1,8 @@
 import { useRef, useState } from "react";
-import { readExcel } from "../service/SpreadSheetParsing";
+import {
+    InvalidScheduleFileError,
+    readExcel,
+} from "../service/SpreadSheetParsing";
 import type { Asignatura } from "../types/types";
 
 type FileUploaderProps = {
@@ -25,9 +28,11 @@ function FileUploader({ onDataParsed }: FileUploaderProps) {
                 }
                 if (onDataParsed) onDataParsed(data, file.name);
             })
-            .catch(() =>
+            .catch((err) =>
                 setError(
-                    "No se pudo leer el archivo. ¿Es el Excel de horarios de tu sede?",
+                    err instanceof InvalidScheduleFileError
+                        ? err.message
+                        : "No se pudo leer el archivo. ¿Es el Excel de horarios de tu sede?",
                 ),
             )
             .finally(() => setLoading(false));
@@ -51,7 +56,7 @@ function FileUploader({ onDataParsed }: FileUploaderProps) {
             <input
                 ref={inputRef}
                 type="file"
-                accept=".xlsx, .xls"
+                accept=".xlsx"
                 hidden
                 onChange={(e) => handleFile(e.target.files?.[0])}
             />
@@ -61,7 +66,7 @@ function FileUploader({ onDataParsed }: FileUploaderProps) {
                     ? "Leyendo archivo…"
                     : "Arrastra aquí el Excel de tu sede"}
             </p>
-            <p className="dz-sub">o haz clic para buscarlo (.xlsx / .xls)</p>
+            <p className="dz-sub">o haz clic para buscarlo (.xlsx)</p>
             {error ? <p className="dz-error">{error}</p> : null}
         </div>
     );

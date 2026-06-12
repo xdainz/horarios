@@ -1,122 +1,109 @@
-import * as XLSX from "xlsx";
+import readXlsxFile, { type Row, type Sheet } from "read-excel-file/browser";
 import type { Asignatura } from "../types/types";
+import { normalize } from "../utils/text";
 
-export function readExcel(file: File): Promise<Asignatura[]> {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const data = e.target?.result;
-                const workbook = XLSX.read(data as ArrayBuffer, {
-                    type: "array",
-                });
+// Thrown when the workbook doesn't look like the horarios export.
+// The message is shown to the user as-is.
+export class InvalidScheduleFileError extends Error {}
 
-                // get first page
-                const sheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[sheetName];
-                const rawData = XLSX.utils.sheet_to_json(worksheet);
-                const parsed = parseAsignatura(rawData as object[]);
-                resolve(parsed);
-            } catch (err) {
-                reject(err);
-            }
-        };
-        reader.onerror = (err) => reject(err);
-        reader.readAsArrayBuffer(file);
+const WRONG_FILE_MESSAGE =
+    "El archivo no tiene las columnas esperadas (Carrera, Sección, Horario…). ¿Es el Excel de horarios de tu sede?";
+
+// normalized header text -> Asignatura field
+const HEADER_MAP: Record<string, keyof Asignatura> = {
+    sede: "Sede",
+    carrera: "Carrera",
+    plan: "Plan",
+    jornada: "Jornada",
+    "sigla asignatura": "SiglaAsignatura",
+    sigla: "SiglaAsignatura",
+    "nombre asignatura": "NombreAsignatura",
+    nombre: "NombreAsignatura",
+    nivel: "Nivel",
+    seccion: "Seccion",
+    horario: "Horario",
+    docente: "Docente",
+    "asignatura virtual sincronica": "IsVirtual",
+    "asignatura virtual sincrona": "IsVirtual",
+    "asignatura virtual": "IsVirtual",
+};
+
+const REQUIRED: (keyof Asignatura)[] = [
+    "Carrera",
+    "Jornada",
+    "SiglaAsignatura",
+    "NombreAsignatura",
+    "Nivel",
+    "Seccion",
+    "Horario",
+];
+
+type ColumnIndex = Partial<Record<keyof Asignatura, number>>;
+
+// Map a header row to column positions; null if required columns are missing.
+function matchHeaderRow(row: Row): ColumnIndex | null {
+    const columns: ColumnIndex = {};
+    row.forEach((cell, i) => {
+        if (typeof cell !== "string") return;
+        const field = HEADER_MAP[normalize(cell).trim().replace(/\s+/g, " ")];
+        if (field !== undefined && columns[field] === undefined) {
+            columns[field] = i;
+        }
     });
+    return REQUIRED.every((field) => columns[field] !== undefined)
+        ? columns
+        : null;
 }
 
-// ai slop parser
-function parseAsignatura(objects: object[]): Asignatura[] {
-    const parsedList: Asignatura[] = [];
+function parseRow(row: Row, columns: ColumnIndex): Asignatura {
+    const cell = (field: keyof Asignatura) => {
+        const i = columns[field];
+        return i === undefined ? null : (row[i] ?? null);
+    };
+    const text = (field: keyof Asignatura) =>
+        cell(field) === null ? "" : String(cell(field)).trim();
 
-    const keyMap: Record<string, keyof Asignatura> = {
-        sede: "Sede",
-        carrera: "Carrera",
-        plan: "Plan",
-        jornada: "Jornada",
-        "sigla asignatura": "SiglaAsignatura",
-        sigla: "SiglaAsignatura",
-        "nombre asignatura": "NombreAsignatura",
-        nombre: "NombreAsignatura",
-        nivel: "Nivel",
-        sección: "Seccion",
-        seccion: "Seccion",
-        horario: "Horario",
-        docente: "Docente",
-        "asignatura virtual sincronica": "IsVirtual",
-        "asignatura virtual sincrona": "IsVirtual",
-        "asignatura virtual sincrónica": "IsVirtual",
-        "asignatura virtual": "IsVirtual",
-        isvirtual: "IsVirtual",
-    } as const;
+    const plan = Number(cell("Plan"));
+    const nivelRaw = cell("Nivel");
+    return {
+        Sede: text("Sede"),
+        Carrera: text("Carrera"),
+        Plan: Number.isFinite(plan) ? plan : 0,
+        Jornada: text("Jornada"),
+        SiglaAsignatura: text("SiglaAsignatura"),
+        NombreAsignatura: text("NombreAsignatura"),
+        Nivel: typeof nivelRaw === "number" ? nivelRaw : text("Nivel"),
+        Seccion: text("Seccion"),
+        Horario: text("Horario"),
+        Docente: text("Docente"),
+        IsVirtual: text("IsVirtual") || null,
+    };
+}
 
-    const normalize = (s: string) =>
-        s
-            .toLowerCase()
-            .normalize("NFD")
-            .replace(/\p{Diacritic}/gu, "")
-            .replace(/\s+/g, " ")
-            .trim();
-
-    for (const obj of objects) {
-        const out: Partial<Asignatura> = {
-            IsVirtual: null,
-            Carrera: "",
-            Docente: "",
-            Horario: "",
-            Jornada: "",
-            Nivel: "",
-            NombreAsignatura: "",
-            Plan: 0,
-            Seccion: "",
-            Sede: "",
-            SiglaAsignatura: "",
-        } as Partial<Asignatura>;
-
-        for (const [rawKey, rawVal] of Object.entries(
-            obj as Record<string, unknown>,
-        )) {
-            const k = normalize(rawKey);
-            const mapped = keyMap[k] ?? null;
-            const val = rawVal === undefined || rawVal === null ? "" : rawVal;
-
-            if (mapped) {
-                // handle Plan numeric
-                if (mapped === "Plan") {
-                    const n = Number(val);
-                    out.Plan = Number.isFinite(n) ? n : out.Plan;
-                    continue;
-                }
-
-                if (mapped === "Nivel") {
-                    const n = Number(val);
-                    out.Nivel = Number.isFinite(n) ? n : String(val);
-                    continue;
-                }
-
-                if (mapped === "IsVirtual") {
-                    out.IsVirtual = String(val).trim() || null;
-                    continue;
-                }
-
-                // generic string fields
-                out[mapped] = String(val).trim();
-            } else {
-                // attempt to map some standard English/other keys
-                if (k === "plan") {
-                    const n = Number(val);
-                    out.Plan = Number.isFinite(n) ? n : out.Plan;
-                }
+// The DUOC export varies: some sheets start with the header row, others
+// (the raw "RESULTADOS DE LA BUSQUEDA" sheet) prepend ~20 filler rows, and
+// sheet order is not guaranteed. Find the first sheet containing a row that
+// holds all required headers and parse everything below it.
+export function parseSheets(sheets: Sheet[]): Asignatura[] {
+    for (const { data } of sheets) {
+        for (let i = 0; i < data.length; i++) {
+            const columns = matchHeaderRow(data[i]);
+            if (columns) {
+                return data.slice(i + 1).map((row) => parseRow(row, columns));
             }
         }
-
-        // final normalization for required shape
-        // Ensure Plan is a number
-        if (out.Plan === undefined || out.Plan === null) out.Plan = 0;
-
-        parsedList.push(out as Asignatura);
     }
+    throw new InvalidScheduleFileError(WRONG_FILE_MESSAGE);
+}
 
-    return parsedList;
+export async function readExcel(file: File): Promise<Asignatura[]> {
+    let sheets: Sheet[];
+    try {
+        sheets = await readXlsxFile(file);
+    } catch {
+        throw new InvalidScheduleFileError(
+            "No se pudo leer el archivo. Debe ser un Excel .xlsx.",
+        );
+    }
+    return parseSheets(sheets);
 }
